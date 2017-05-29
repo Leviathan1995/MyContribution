@@ -74,6 +74,7 @@ class Contribution:
         self.contribution_url = self.contribution_url + self.github_username
 
     def parser(self):
+        print("Data Crawling.")
         while self.contribution_url != "":
             self.contribution_response = self.session.get(self.contribution_url, headers=self.user_headers)
             soup = BeautifulSoup(self.contribution_response.text, 'html.parser')
@@ -102,10 +103,10 @@ class Contribution:
 
 
     def write(self):
+        print("Update README.md.")
         str_info = ""
         for info in self.contribution_info:
             str_info += ' * [**{}**]({}):[*{}*]({})\n'.format(info.project_name, info.project_url, info.pr_title, info.pr_url)
-        print(str_info)
         str_contribution = basic_content + "\n" + str_info
 
         if not os.path.isfile("README.md"):
@@ -117,6 +118,7 @@ class Contribution:
         file.close()
 
     def push(self):
+        print("Push to Github.")
         os.system('git add README.md')
         os.system('git commit -m "update README.md"')
         os.system('git push')
