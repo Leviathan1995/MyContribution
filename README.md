@@ -1,6 +1,6 @@
 
 # MyContribution
-Crawl my all merged pull request and show on `README.md`
+Crawl all merged pull request and show on `README.md`
 
 ## Basic
 
