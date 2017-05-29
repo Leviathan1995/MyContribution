@@ -7,6 +7,8 @@ Crawl all merged pull request and show on `README.md`
 #### Dependencies
  * Python 3.5+
  * BeautifulSoup
+ 
+        pip3 install beautifulsoup4
 
 #### How to use
 Fork this repository and 
