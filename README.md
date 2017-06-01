@@ -7,8 +7,6 @@ Crawl all merged pull request and show on `README.md`
 #### Dependencies
  * Python 3.5+
  * BeautifulSoup
- 
-        pip3 install beautifulsoup4
 
 #### How to use
 Fork this repository and 
@@ -16,8 +14,7 @@ Fork this repository and
         python3 contribution.py
 
 ## Contribution
-
- * [**Qihoo360/pika**](https://github.com/Qihoo360/pika):[*fix memory leak*](https://github.com/Qihoo360/pika/pull/98)
+(41 merged) * [**Qihoo360/pika**](https://github.com/Qihoo360/pika):[*fix memory leak*](https://github.com/Qihoo360/pika/pull/98)
  * [**akumuli/Akumuli**](https://github.com/akumuli/Akumuli):[*Set meaningful number of CPU's in TcpServer configuration*](https://github.com/akumuli/Akumuli/pull/184)
  * [**akumuli/Akumuli**](https://github.com/akumuli/Akumuli):[*fix to clarify the precendence*](https://github.com/akumuli/Akumuli/pull/182)
  * [**Qihoo360/zeppelin**](https://github.com/Qihoo360/zeppelin):[*return statement is unnecessary*](https://github.com/Qihoo360/zeppelin/pull/6)
