@@ -19,16 +19,15 @@ Fork this repository and
         
         python3 contribution.py
 
-## Contribution
-'''
+## Contribution'''
 
 class ContributionInfo:
-    def __init__(self, pr_title, pr_url, project_name, project_url, author):
+    def __init__(self, pr_title, pr_url, project_name, project_url, star):
         self.pr_title = pr_title
         self.pr_url = pr_url
         self.project_name = project_name
         self.project_url = project_url
-        self.author = author
+        self.star = star
 
 
 class Contribution:
@@ -92,7 +91,12 @@ class Contribution:
                 project_name = project.string
                 project_url = project.a['href']
 
-                c = ContributionInfo(pr_title.strip(), pr_url.strip(), project_name.strip(), project_url.strip(), self.github_username)
+                project_response = self.session.get(project_url, headers=self.user_headers)
+                project_soup = BeautifulSoup(project_response.text, 'html.parser')
+                project_star = project_soup.find_all('a', 'social-count js-social-count')
+                star = BeautifulSoup(str(project_star[1]), 'html.parser')
+
+                c = ContributionInfo(pr_title.strip(), pr_url.strip(), project_name.strip(), project_url.strip(), star.string.strip())
                 self.contribution_info.append(c)
 
             if next_page:
@@ -104,10 +108,10 @@ class Contribution:
 
     def write(self):
         print("Update README.md.")
-        str_info = ""
+        str_info = '(***{} merged***)'.format(len(self.contribution_info)) + "\n"
         for info in self.contribution_info:
-            str_info += ' * [**{}**]({}):[*{}*]({})\n'.format(info.project_name, info.project_url, info.pr_title, info.pr_url)
-        str_contribution = basic_content + "\n" + str_info
+            str_info += ' * [**{}**(★{})]({})**:**[*{}*]({})\n'.format(info.project_name, info.star, info.project_url, info.pr_title, info.pr_url)
+        str_contribution = basic_content + str_info
 
         if not os.path.isfile("README.md"):
             raise TypeError("README.md does not exist")
