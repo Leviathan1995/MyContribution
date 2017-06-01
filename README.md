@@ -13,7 +13,7 @@ Fork this repository and
         
         python3 contribution.py
 
-## Contribution(41 merged)
+## Contribution(##### 41 merged)
  * [**Qihoo360/pika**](https://github.com/Qihoo360/pika):[*fix memory leak*](https://github.com/Qihoo360/pika/pull/98)
  * [**akumuli/Akumuli**](https://github.com/akumuli/Akumuli):[*Set meaningful number of CPU's in TcpServer configuration*](https://github.com/akumuli/Akumuli/pull/184)
  * [**akumuli/Akumuli**](https://github.com/akumuli/Akumuli):[*fix to clarify the precendence*](https://github.com/akumuli/Akumuli/pull/182)
