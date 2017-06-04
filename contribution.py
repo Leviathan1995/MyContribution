@@ -1,5 +1,6 @@
 import requests
 import os
+import sys
 import re
 import getpass
 from bs4 import BeautifulSoup
@@ -68,7 +69,8 @@ class Contribution:
         if str(login_response) == "<Response [200]>":
             print("Login Success.")
         else:
-            print("Login Failed.")
+            print("Login Failed. Maybe Password Incorrect")
+            sys.exit()
 
         self.contribution_url = self.contribution_url + self.github_username
 
@@ -91,6 +93,7 @@ class Contribution:
                 project_name = project.string
                 project_url = project.a['href']
 
+                # Get star
                 project_response = self.session.get(project_url, headers=self.user_headers)
                 project_soup = BeautifulSoup(project_response.text, 'html.parser')
                 project_star = project_soup.find_all('a', 'social-count js-social-count')
