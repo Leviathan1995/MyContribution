@@ -67,15 +67,15 @@ class Contribution:
 
         login_response = self.session.post(self.session_url, headers=self.user_headers, data=login_data)
         if str(login_response) == "<Response [200]>":
-            print("Login Success.")
+            print("Login success.")
         else:
-            print("Login Failed. Maybe Password Incorrect")
+            print("Login failed, Maybe password incorrect")
             sys.exit()
 
         self.contribution_url = self.contribution_url + self.github_username
 
     def parser(self):
-        print("Data Crawling.")
+        print("Data crawling, Please wait a few minutes.")
         while self.contribution_url != "":
             self.contribution_response = self.session.get(self.contribution_url, headers=self.user_headers)
             soup = BeautifulSoup(self.contribution_response.text, 'html.parser')
