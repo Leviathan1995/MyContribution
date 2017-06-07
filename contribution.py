@@ -111,7 +111,7 @@ class Contribution:
 
     def write(self):
         print("Update README.md.")
-        str_info = '(***{} merged***)'.format(len(self.contribution_info)) + "\n"
+        str_info = '({} merged)'.format(len(self.contribution_info)) + "\n"
         for info in self.contribution_info:
             str_info += ' * [**{}**(★{})]({}) - [{}]({})\n'.format(info.project_name, info.star, info.project_url, info.pr_title, info.pr_url)
         str_contribution = basic_content + str_info
