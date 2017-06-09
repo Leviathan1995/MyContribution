@@ -108,7 +108,6 @@ class Contribution:
             else:
                 self.contribution_url = ""
 
-
     def write(self):
         print("Update README.md.")
         str_info = '({} merged)'.format(len(self.contribution_info)) + "\n"
@@ -124,7 +123,8 @@ class Contribution:
         file.write(str_contribution)
         file.close()
 
-    def push(self):
+    @classmethod
+    def push(cls):
         print("Push to Github.")
         os.system('git add README.md')
         os.system('git commit -m "update README.md"')
