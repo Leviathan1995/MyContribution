@@ -11,8 +11,7 @@ import warnings
 
 from datetime import datetime
 
-_BASE_CONTENT = '''
-# MyContribution
+_BASE_CONTENT = '''# MyContribution
 
 Crawl all merged pull request and show on `README.md`
 
