@@ -495,7 +495,7 @@ class ContributionsCrawler(object):
 
         _step('Writing data to {}', filename)
         with open(filename, 'w') as f:
-            f.writelines(_BASE_CONTENT + content)
+            f.writelines(_BASE_CONTENT + content + '\n')
         _ok()
 
     async def run_and_write(self, template=None, filename='README.md'):
