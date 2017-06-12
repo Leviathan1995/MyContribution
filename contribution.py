@@ -5,7 +5,6 @@ import argparse
 import asyncio
 import getpass
 import json
-import os
 import re
 import time
 import warnings
@@ -28,16 +27,14 @@ Crawl all merged pull request and show on `README.md`
 #### How to use
 
 Fork this repository and 
-        
+
 ```bash
 python3 contribution.py <YourUserName>
 ```
 
 Default mode is ASYNC, if error happened, you can try slower `--sync` mode.
 
-For only merged PRs, use `-m` option. 
-
-For force override `README.md`, use `-f` option.
+For show unmerged PRs, use `-u` option.
 
 Use `--help` to see full option and usage.
 
@@ -48,13 +45,9 @@ Use `--help` to see full option and usage.
 _RE_URL_PROCESS = re.compile(r'^https://api.github.com/repos/([^/]+)/([^/]+)')
 _RE_URL_REPLACE = r'https://github.com/\1/\2'
 
-_DEFAULT_TEMPLATE = '- {merged} ' \
-                    '[{c}{repo_name} ({star}★ {fork}🍴){c}]({repo_url}) - ' \
+_DEFAULT_TEMPLATE = '- {merged}' \
+                    '[{repo_name} ({star}★ {fork}🍴)]({repo_url}) - ' \
                     '[{title}]({url})'
-
-
-def _default_pred(pr):
-    return pr.repo.star > 1000 and pr.repo.issue_and_pr > 100
 
 
 def _step(desc, *args, **kwargs):
@@ -110,12 +103,10 @@ class _PullRequest(object):
         return datetime.strptime(date_string, date_template)
 
     def __str__(self):
-        return self.format('{repo_name} - {title} - {created_at}')
+        return self.format('{repo_name} - {title} - {created_at}', '', '')
 
-    def format(self, template, true=None, false=None, date_format=None,
-               pred=None, data=None, fail=None):
-        true = true or 'True'
-        false = false or 'False'
+    def format(self, template, true, false, date_format=None,
+               custom_data=None):
         context = {
             'url': _api_url_to_normal(self.url),
             'title': self.title,
@@ -136,10 +127,8 @@ class _PullRequest(object):
             'repo_author_url': _api_url_to_normal(self.repo.author.url),
         }
 
-        if pred is not None:
-            context.update({
-                'c': data if pred(self) else fail
-            })
+        if custom_data is not None:
+            context.update({'c': custom_data(self)})
 
         res = template.format(**context)
         return res
@@ -151,16 +140,16 @@ class ContributionsCrawler(object):
     __GITHUB_API_SEARCH = __GITHUB_API_ROOT + '/search/issues'
     __GITHUB_API_ISSUES = __GITHUB_API_ROOT + '/repos/{repo}/issues'
 
-    def __init__(self, username, password, target_user=None, only_merged=True,
-                 extra_query=None, sort='created', asc=False,
-                 async_mode=False, async_pool=None, exclude=None):
+    def __init__(self, username, password, target_user=None,
+                 show_unmerged=False, extra_query=None, sort='created',
+                 asc=False, async_mode=False, async_pool=None, exclude=None):
         """
         The crawler to get all your contributions.
 
         :param str username: The GitHub username to
         :param str password: The GitHub password for [username]
         :param str target_user: Crawl target user, default will be [username]
-        :param bool only_merged: Only show PRs which be merged
+        :param bool show_unmerged: Include PRs which not be merged
         :param list extra_query: Extra query when search
             example: [
                 ('language', 'python'),
@@ -193,7 +182,9 @@ class ContributionsCrawler(object):
             ('type', 'pr'),
         ]
 
-        if only_merged:
+        self.__show_unmerged = show_unmerged
+
+        if not self.__show_unmerged:
             query.append(('is', 'merged'))
 
         if extra_query is not None:
@@ -412,10 +403,14 @@ class ContributionsCrawler(object):
 
     async def __test_login_async(self, session):
         _step("Login to GitHub as [{}]", self.__username)
-        resp = await session.get(self.__GITHUB_API_TEST_LOGIN)
-        await self.__get_json_or_error_async(
-            resp, prefix_message='Login failed: '
-        )
+        async with session.get(self.__GITHUB_API_TEST_LOGIN) as resp:
+            try:
+                await self.__get_json_or_error_async(
+                    resp, prefix_message='Login failed: '
+                )
+            except Exception as e:
+                session.close()
+                raise e
         _ok()
 
     async def __pr_worker(self, session, pr_url, repo_url):
@@ -482,30 +477,19 @@ class ContributionsCrawler(object):
 
         return prs
 
-    @staticmethod
-    def write(prs, template=None, filename='README.md', force=False,
-              true=None, false=None, date_format=None,
-              pred=None, succ=None, fail=None):
+    def write(self, prs, template=None, filename='README.md',
+              true='', false='', date_format=None,
+              custom_data=None):
 
-        if not force:
-            _step('Check if {} file exist', filename)
-            if os.path.exists(filename):
-                raise RuntimeError(
-                    '{} already exist, '
-                    'use force=True option to override'.format(filename)
-                )
-            _ok()
+        if self.__show_unmerged:
+            true = true or '[x] '
+            false = false or '[ ] '
 
-        true = true or '[x]'
-        false = false or '[ ]'
         template = template or _DEFAULT_TEMPLATE
-        pred = pred or _default_pred
-        succ = succ or '**'
-        fail = fail or ''
 
         _step('Building PR data', filename=filename)
         content = '\n'.join([
-            x.format(template, true, false, date_format, pred, succ, fail)
+            x.format(template, true, false, date_format, custom_data)
             for x in prs
         ])
         _ok()
@@ -515,9 +499,8 @@ class ContributionsCrawler(object):
             f.writelines(_BASE_CONTENT + content)
         _ok()
 
-    async def run_and_write(self, template=None, filename='README.md',
-                            force=False):
-        self.write(await self.run(), template, filename, force)
+    async def run_and_write(self, template=None, filename='README.md'):
+        self.write(await self.run(), template, filename)
 
 
 async def main():
@@ -527,34 +510,19 @@ async def main():
         'login_user', type=str, help='Username to login to github'
     )
     parser.add_argument(
-        '-t', '--target', type=str, default=None,
-        help='Target user to get prs, default will be the same as login_user'
-    )
-    parser.add_argument(
         '-s', '--sync', action='store_true', help='Use sync mode'
     )
     parser.add_argument(
-        '-m', '--only-merged', action='store_true',
-        help='Only get PR which be merged'
-    )
-    parser.add_argument(
-        '--sort', type=str, default='created',
-        help='PR output order, default is by created time, '
-             'can be choose from [created,  updated, comment]'
-    )
-    parser.add_argument(
-        '--asc', action='store_true', help='use asc order, default is desc'
+        '-u', '--show-unmerged', action='store_true',
+        help='Include PRs which not be merged'
     )
     parser.add_argument(
         '-e', '--exclude', type=str,
-        help='Exclude PRs of which the repo full name mathch the regex'
+        help='Exclude PRs which\'s repo full name match the regex'
     )
     parser.add_argument(
         '-o', '--output', type=str, default='README.md',
-        help='Output filename',
-    )
-    parser.add_argument(
-        '-f', '--force', action='store_true', help='Force override exist file'
+        help='Output filename, default will be README.md',
     )
 
     args = parser.parse_args()
@@ -566,12 +534,11 @@ async def main():
         )
 
     c = ContributionsCrawler(
-        args.login_user, password, target_user=args.target or args.login_user,
-        only_merged=args.only_merged, sort=args.sort, asc=args.asc,
+        args.login_user, password, show_unmerged=args.show_unmerged,
         async_mode=not args.sync, exclude=args.exclude,
     )
 
-    await c.run_and_write(filename=args.output, force=args.force)
+    await c.run_and_write(filename=args.output)
 
 
 if __name__ == '__main__':
