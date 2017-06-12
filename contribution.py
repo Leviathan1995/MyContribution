@@ -1,14 +1,18 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import requests
-import os
-import sys
-import re
+import argparse
+import asyncio
 import getpass
-from bs4 import BeautifulSoup
+import json
+import os
+import re
+import time
+import warnings
 
-basic_content = '''
+from datetime import datetime
+
+_BASE_CONTENT = '''
 # MyContribution
 
 Crawl all merged pull request and show on `README.md`
@@ -16,165 +20,560 @@ Crawl all merged pull request and show on `README.md`
 ## Basic
 
 #### Dependencies
- * Python 3.5+
- * BeautifulSoup
+
+ - Python 3.5+
+ - request (Only in sync mode)
+ - aiohttp (Only in async mode)
 
 #### How to use
 
 Fork this repository and 
         
 ```bash
-python3 contribution.py
+python3 contribution.py <YourUserName>
 ```
 
-## Contribution
+Default mode is ASYNC, if error happened, you can try slower `--sync` mode.
+
+For only merged PRs, use `-m` option. 
+
+For force override `README.md`, use `-f` option.
+
+Use `--help` to see full option and usage.
+
+## ContributionsCrawler
 
 '''
 
+_RE_URL_PROCESS = re.compile(r'^https://api.github.com/repos/([^/]+)/([^/]+)')
+_RE_URL_REPLACE = r'https://github.com/\1/\2'
 
-class ContributionInfo:
-    def __init__(self, pr_title, pr_url, project_name, project_url, star):
-        self.pr_title = pr_title
-        self.pr_url = pr_url
-        self.project_name = project_name
-        self.project_url = project_url
+_DEFAULT_TEMPLATE = '- {merged} ' \
+                    '[{c}{repo_name} ({star}★ {fork}🍴){c}]({repo_url}) - ' \
+                    '[{title}]({url})'
+
+
+def _default_pred(pr):
+    return pr.repo.star > 1000 and pr.repo.issue_and_pr > 100
+
+
+def _step(desc, *args, **kwargs):
+    print(desc.format(*args, **kwargs), '...', end='', flush=True)
+
+
+def _ok():
+    print('OK')
+
+
+def _api_url_to_normal(url):
+    return _RE_URL_PROCESS.sub(_RE_URL_REPLACE, url)
+
+
+class _User(object):
+    def __init__(self, url, name):
+        self.url = url
+        self.name = name
+
+
+class _Repo(object):
+    def __init__(
+            self, url, name='', author=None,
+            star=0, opening_issue=0, issue_and_pr=0, fork=0
+    ):
+        self.url = url
+        self.name = name
+        self.author = author
         self.star = star
+        self.opening_issue = opening_issue
+        self.issue_and_pr = issue_and_pr
+        self.fork = fork
 
 
-class Contribution:
-    def __init__(self):
-        self.github_url = "https://github.com"
-        self.login_url = 'https://github.com/login'
-        self.github_username = ""
-        self.github_password = ""
-        self.user_headers = {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) '
-                          'AppleWebKit/537.36 (KHTML, like Gecko) '
-                          'Chrome/48.0.2564.116 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;'
-                      'q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Encoding': 'gzip',
-            'Accept-Language': 'zh-CN,zh;q=0.8,en;q=0.6,zh-TW;q=0.4'
-        }
-        self.session_url = 'https://github.com/session'
-        self.contribution_url = "https://github.com/pulls?" \
-                                "q=is%3Apr+is%3Aclosed+is%3Amerged+author%3A"
-        self.contribution_response = ""
-        self.contribution_info = []
-        self.session = ""
+class _PullRequest(object):
+    def __init__(self, url, title, repo, is_merged, created_at, merged_at):
+        self.url = url
+        self.title = title
+        self.repo = repo
 
-    def login(self):
-        self.github_username = input("Your Github Username Not Email:")
-        self.github_password = getpass.getpass("Your Github Password:")
-        self.session = requests.Session()
-        response = self.session.get(self.login_url, headers=self.user_headers)
-        pattern = re.compile(
-            r'<input name="authenticity_token" type="hidden" value="(.*)" />'
-        )
+        self.is_merged = is_merged
 
-        response_text = response.content.decode('utf-8')
-        authenticity_token = pattern.findall(response_text)[0]
-
-        login_data = {
-            'commit': 'Sign in',
-            'utf8': '%E2%9C%93',
-            'authenticity_token': authenticity_token,
-            'login': self.github_username,
-            'password': self.github_password
-        }
-
-        login_response = self.session.post(
-            self.session_url, headers=self.user_headers, data=login_data)
-        if str(login_response) == "<Response [200]>":
-            print("Login success.")
+        self.created_at = self.__strptime(created_at)
+        if self.is_merged:
+            self.merged_at = self.__strptime(merged_at)
         else:
-            print("Login failed, Maybe password incorrect")
-            sys.exit()
-
-        self.contribution_url = self.contribution_url + self.github_username
-
-    def parser(self):
-        print("Data crawling, Please wait a few minutes.")
-        while self.contribution_url != "":
-            self.contribution_response = self.session.get(
-                self.contribution_url, headers=self.user_headers
-            )
-            soup = BeautifulSoup(
-                self.contribution_response.text, 'html.parser'
-            )
-
-            pr_info = soup.find_all(
-                'a', 'link-gray-dark no-underline h4 js-navigation-open')
-            pr_project = soup.find_all('a', 'muted-link h4 pr-1')
-            next_page = soup.find_all('a', 'next_page')
-
-            for info, project in zip(pr_info, pr_project):
-                info = BeautifulSoup(str(info), 'html.parser')
-                project = BeautifulSoup(str(project), 'html.parser')
-
-                pr_title = info.string
-                pr_url = self.github_url + info.a['href']
-                project_name = project.string
-                project_url = project.a['href']
-
-                # Get star
-                project_response = self.session.get(
-                    project_url, headers=self.user_headers
-                )
-                project_soup = BeautifulSoup(
-                    project_response.text, 'html.parser'
-                )
-                project_star = project_soup.find_all(
-                    'a', 'social-count js-social-count'
-                )
-                star = BeautifulSoup(str(project_star[1]), 'html.parser')
-
-                c = ContributionInfo(
-                    pr_title.strip(), pr_url.strip(), project_name.strip(),
-                    project_url.strip(), star.string.strip()
-                )
-                self.contribution_info.append(c)
-
-            if next_page:
-                next_page = BeautifulSoup(str(next_page), 'html.parser')
-                self.contribution_url = self.github_url + next_page.a['href']
-            else:
-                self.contribution_url = ""
-
-    def write(self):
-        print("Update README.md.")
-        str_info = '(***{} merged***)'.format(
-            len(self.contribution_info)
-        ) + "\n"
-        for info in self.contribution_info:
-            str_info += ' * [**{}**(★{})]({}) - [{}]({})\n'.format(
-                info.project_name, info.star, info.project_url,
-                info.pr_title, info.pr_url
-            )
-        str_contribution = basic_content + str_info
-
-        if not os.path.isfile("README.md"):
-            raise TypeError("README.md does not exist")
-
-        file = open("README.md", 'r+')
-        file.truncate()
-        file.write(str_contribution)
-        file.close()
+            self.merged_at = merged_at
 
     @staticmethod
-    def push():
-        print("Push to Github.")
-        os.system('git add README.md')
-        os.system('git commit -m "update README.md"')
-        os.system('git push')
+    def __strptime(date_string):
+        # 2017-02-03T08:35:12Z
+        date_template = '%Y-%m-%dT%H:%M:%SZ'
+        return datetime.strptime(date_string, date_template)
+
+    def __str__(self):
+        return self.format('{repo_name} - {title} - {created_at}')
+
+    def format(self, template, true=None, false=None, date_format=None,
+               pred=None, data=None, fail=None):
+        true = true or 'True'
+        false = false or 'False'
+        context = {
+            'url': _api_url_to_normal(self.url),
+            'title': self.title,
+            'merged': true if self.is_merged else false,
+            'created_at': self.created_at.strftime(
+                date_format) if date_format else str(self.created_at),
+            'merged_at': [
+                false, false, str(self.merged_at),
+                self.is_merged and self.merged_at.strftime(date_format or ''),
+            ][2 * int(self.is_merged) + (1 if date_format is not None else 0)],
+            'repo_name': self.repo.name,
+            'repo_url': _api_url_to_normal(self.repo.url),
+            'star': self.repo.star,
+            'fork': self.repo.fork,
+            'oissue': self.repo.opening_issue,
+            'aissue': self.repo.issue_and_pr,
+            'repo_author_name': self.repo.author.name,
+            'repo_author_url': _api_url_to_normal(self.repo.author.url),
+        }
+
+        if pred is not None:
+            context.update({
+                'c': data if pred(self) else fail
+            })
+
+        res = template.format(**context)
+        return res
 
 
-def main():
-    c = Contribution()
-    c.login()
-    c.parser()
-    c.write()
-    c.push()
+class ContributionsCrawler(object):
+    __GITHUB_API_ROOT = 'https://api.github.com'
+    __GITHUB_API_TEST_LOGIN = __GITHUB_API_ROOT + '/user'
+    __GITHUB_API_SEARCH = __GITHUB_API_ROOT + '/search/issues'
+    __GITHUB_API_ISSUES = __GITHUB_API_ROOT + '/repos/{repo}/issues'
+
+    def __init__(self, username, password, target_user=None, only_merged=True,
+                 extra_query=None, sort='created', asc=False,
+                 async_mode=False, async_pool=None, exclude=None):
+        """
+        The crawler to get all your contributions.
+
+        :param str username: The GitHub username to
+        :param str password: The GitHub password for [username]
+        :param str target_user: Crawl target user, default will be [username]
+        :param bool only_merged: Only show PRs which be merged
+        :param list extra_query: Extra query when search
+            example: [
+                ('language', 'python'),
+                ('user', 'username'),
+                ('created', '2017-05-01..2017-05-30'),
+            ]
+        :param str sort: Pick one from {created, updated, comment}
+        :params bool asc: Use asc order, False will be desc
+        :param bool async_mode: use async mode (need Python 3.5+)
+        :param async_pool: if not given, will use default pool of aiohttp
+        :param str exclude: a regex string to exclude prs
+            which's repo title match it
+        """
+        query_error = ValueError(
+            'A list of two-members tuple excepted for extra_query params'
+        )
+
+        if not (extra_query is None or isinstance(extra_query, list)):
+            raise query_error
+
+        if sort not in {'comment', 'created', 'updated'}:
+            raise ValueError('Invalid sort param')
+
+        self.__username = username
+        self.__password = password
+        self.__target_user = target_user or username
+
+        query = [
+            ('author', str(self.__target_user)),
+            ('type', 'pr'),
+        ]
+
+        if only_merged:
+            query.append(('is', 'merged'))
+
+        if extra_query is not None:
+            for item in extra_query:
+                if not isinstance(item, tuple) or len(item) != 2:
+                    raise query_error
+                query.append(item)
+
+        self.__params = {
+            'q': self.__build_query_string(query),
+            'sort': sort,
+            'order': 'asc' if asc else 'desc',
+            'per_page': 100,
+        }
+
+        self.__async_mode = bool(async_mode)
+        self.__async_pool = async_pool
+        if exclude is not None:
+            self.__exclude = re.compile(exclude)
+        else:
+            self.__exclude = None
+
+    def __is_exclude(self, repo_url):
+        repo_name = _RE_URL_PROCESS.sub(r'\1/\2', repo_url)
+        if self.__exclude:
+            return self.__exclude.search(repo_name) is not None
+
+    @staticmethod
+    def __pr_obj(pr_data, pr_url):
+        return _PullRequest(
+            pr_url, pr_data['title'], None, pr_data['merged'],
+            pr_data['created_at'], pr_data['merged_at']
+        )
+
+    @staticmethod
+    def __repo_add_user(pr_data, repo):
+        user_data = pr_data['base']['user']
+        user_url = user_data['url']
+        user_name = user_data['login']
+        repo.author = _User(user_url, user_name)
+
+    @staticmethod
+    def __build_repo_from_data(pr_data, repo_url):
+        repo_data = pr_data['base']['repo']
+        name = repo_data['full_name']
+        star = repo_data['stargazers_count']
+        issue = repo_data['open_issues_count']
+        fork = repo_data['forks_count']
+        repo = _Repo(repo_url, name, None, star, issue, 0, fork)
+        return repo
+
+    @staticmethod
+    def __build_query_string(query):
+        return ' '.join(
+            [':'.join(item) for item in query]
+        )
+
+    async def run(self):
+        if self.__async_mode:
+            print('!!! ASYNC MODE !!!')
+            print('If error happened, please add --sync option and try again')
+            return await self.__run_async()
+        else:
+            print("Run in sync mode")
+            return self.__run_sync()
+
+    def __build_session(self):
+        from requests import Session
+        session = Session()
+
+        def new_get(*args, **kwargs):
+            while True:
+                res = session.old_get(*args, **kwargs)
+                error = self.__get_json_or_error(res, raise_error=False)
+                if isinstance(error, RuntimeError) \
+                        and 'API limits' in str(error):
+                    time.sleep(5)
+                    continue
+                return res
+
+        session.auth = (self.__username, self.__password)
+        session.headers = {'User-Agent': self.__username}
+
+        session.old_get = session.get
+        session.get = new_get
+
+        return session
+
+    @staticmethod
+    def __get_json_or_error(
+            resp, cls=RuntimeError,
+            prefix_message='GitHub API Error: ', after_message='',
+            raise_error=True,
+    ):
+        try:
+            json_data = resp.json()
+            if 200 <= resp.status_code < 300:
+                return json_data
+            else:
+                msg = prefix_message + json_data['message'] + after_message
+        except json.JSONDecodeError:
+            msg = 'GitHub return a non-json response: ' + resp.text
+        except KeyError:
+            msg = 'GitHub error json has no message field: ' + resp.text
+
+        if raise_error:
+            raise cls(msg)
+        else:
+            return cls(msg)
+
+    def __test_login(self, session):
+        _step("Login to GitHub as [{}]", self.__username)
+        resp = session.get(self.__GITHUB_API_TEST_LOGIN)
+        self.__get_json_or_error(resp, prefix_message='Login failed: ')
+        _ok()
+
+    def __build_pr(self, session, pr_url, repo_url, repos):
+        pr_data = self.__get_json_or_error(session.get(pr_url))
+        pr = self.__pr_obj(pr_data, pr_url)
+        _step('title is [{}]', pr.title)
+        if repo_url not in repos:
+            _ok()
+            repo = self.__build_repo_from_data(pr_data, repo_url)
+            _step('Getting new repo [{}] data', repo.name)
+            self.__repo_add_user(pr_data, repo)
+            data = self.__get_json_or_error(
+                session.get(
+                    self.__GITHUB_API_ISSUES.format(repo=repo.name),
+                    params={
+                        'state': 'all',
+                        'per_page': 1,
+                    },
+                ),
+            )
+            repo.issue_and_pr = 0 if len(data) == 0 else data[0]['number']
+            repos[repo_url] = repo
+        else:
+            _step('of gotten repo [{}]', repos[repo_url].name)
+        pr.repo = repos[repo_url]
+        return pr
+
+    def __run_sync(self):
+        session = self.__build_session()
+        self.__test_login(session)
+
+        prs = []
+        repos = {}
+        params = self.__params.copy()
+        params['page'] = 1
+        excluded = 0
+
+        # get all pr data
+        while True:
+            _step('Getting PR pages, current page {}', params['page'])
+
+            resp = session.get(self.__GITHUB_API_SEARCH, params=params)
+            data = self.__get_json_or_error(resp)
+            total = data['total_count'] - excluded
+
+            _step('total count: {}', total)
+            _ok()
+
+            for issue_data in data['items']:
+                repo_url = issue_data['repository_url']
+                pr_url = issue_data['pull_request']['url']
+
+                _step('Getting {}/{} PR data', len(prs) + 1, total)
+
+                if self.__is_exclude(pr_url):
+                    excluded += 1
+                    total -= 1
+                    print('exclude')
+                    continue
+
+                prs.append(self.__build_pr(session, pr_url, repo_url, repos))
+                _ok()
+
+            if len(prs) == total:
+                break
+
+            params['page'] += 1
+
+        return prs
+
+    def __build_async_session(self):
+        from aiohttp import ClientSession, BasicAuth
+
+        session = ClientSession(
+            auth=BasicAuth(self.__username, self.__password),
+            headers={'User-Agent': self.__username}
+        )
+
+        return session
+
+    @staticmethod
+    async def __get_json_or_error_async(
+            resp, cls=RuntimeError,
+            prefix_message='GitHub API Error: ', after_message='',
+            raise_error=True,
+    ):
+        try:
+            json_data = await resp.json()
+            if 200 <= resp.status < 300:
+                return json_data
+            else:
+                msg = prefix_message + json_data['message'] + after_message
+        except json.JSONDecodeError:
+            msg = 'GitHub return a non-json response: ' + resp.text
+        except KeyError:
+            msg = 'GitHub error json has no message field: ' + resp.text
+
+        if raise_error:
+            raise cls(msg)
+        else:
+            return cls(msg)
+
+    async def __test_login_async(self, session):
+        _step("Login to GitHub as [{}]", self.__username)
+        resp = await session.get(self.__GITHUB_API_TEST_LOGIN)
+        await self.__get_json_or_error_async(
+            resp, prefix_message='Login failed: '
+        )
+        _ok()
+
+    async def __pr_worker(self, session, pr_url, repo_url):
+        async with session.get(pr_url) as resp:
+            pr_data = await self.__get_json_or_error_async(resp)
+            pr = self.__pr_obj(pr_data, pr_url)
+
+            repo = self.__build_repo_from_data(pr_data, repo_url)
+            self.__repo_add_user(pr_data, repo)
+
+            repo_issues_url = self.__GITHUB_API_ISSUES.format(repo=repo.name)
+            async with session.get(
+                    repo_issues_url,
+                    params={'state': 'all', 'per_page': 1}
+            ) as resp2:
+                data = await self.__get_json_or_error_async(resp2)
+                repo.issue_and_pr = 0 if len(data) == 0 else data[0]['number']
+
+            pr.repo = repo
+            return pr
+
+    async def __run_async(self):
+        session = self.__build_async_session()
+        await self.__test_login_async(session)
+
+        prs = []
+        params = self.__params.copy()
+        params['page'] = 1
+        exclude = 0
+
+        # create pr tasks
+        while True:
+            resp = await session.get(self.__GITHUB_API_SEARCH, params=params)
+            data = await self.__get_json_or_error_async(resp)
+            total = data['total_count'] - exclude
+
+            for issue_data in data['items']:
+                pr_url = issue_data['pull_request']['url']
+                repo_url = issue_data['repository_url']
+
+                _step('\rAdd task {i}/{total}', i=len(prs) + 1, total=total)
+
+                if self.__is_exclude(repo_url):
+                    exclude += 1
+                    total -= 1
+                    continue
+
+                prs.append(asyncio.ensure_future(
+                    self.__pr_worker(session, pr_url, repo_url)
+                ))
+
+            if len(prs) == total:
+                _ok()
+                break
+
+            params['page'] += 1
+
+        for i, future in enumerate(prs):
+            _step('\rWaiting for task {i}/{total}', i=i + 1, total=total)
+            prs[i] = await future
+
+        _ok()
+        session.close()
+
+        return prs
+
+    @staticmethod
+    def write(prs, template=None, filename='README.md', force=False,
+              true=None, false=None, date_format=None,
+              pred=None, succ=None, fail=None):
+
+        if not force:
+            _step('Check if {} file exist', filename)
+            if os.path.exists(filename):
+                raise RuntimeError(
+                    '{} already exist, '
+                    'use force=True option to override'.format(filename)
+                )
+            _ok()
+
+        true = true or '[x]'
+        false = false or '[ ]'
+        template = template or _DEFAULT_TEMPLATE
+        pred = pred or _default_pred
+        succ = succ or '**'
+        fail = fail or ''
+
+        _step('Building PR data', filename=filename)
+        content = '\n'.join([
+            x.format(template, true, false, date_format, pred, succ, fail)
+            for x in prs
+        ])
+        _ok()
+
+        _step('Writing data to {}', filename)
+        with open(filename, 'w') as f:
+            f.writelines(_BASE_CONTENT + content)
+        _ok()
+
+    async def run_and_write(self, template=None, filename='README.md',
+                            force=False):
+        self.write(await self.run(), template, filename, force)
+
+
+async def main():
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        'login_user', type=str, help='Username to login to github'
+    )
+    parser.add_argument(
+        '-t', '--target', type=str, default=None,
+        help='Target user to get prs, default will be the same as login_user'
+    )
+    parser.add_argument(
+        '-s', '--sync', action='store_true', help='Use sync mode'
+    )
+    parser.add_argument(
+        '-m', '--only-merged', action='store_true',
+        help='Only get PR which be merged'
+    )
+    parser.add_argument(
+        '--sort', type=str, default='created',
+        help='PR output order, default is by created time, '
+             'can be choose from [created,  updated, comment]'
+    )
+    parser.add_argument(
+        '--asc', action='store_true', help='use asc order, default is desc'
+    )
+    parser.add_argument(
+        '-e', '--exclude', type=str,
+        help='Exclude PRs of which the repo full name mathch the regex'
+    )
+    parser.add_argument(
+        '-o', '--output', type=str, default='README.md',
+        help='Output filename',
+    )
+    parser.add_argument(
+        '-f', '--force', action='store_true', help='Force override exist file'
+    )
+
+    args = parser.parse_args()
+
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore', getpass.GetPassWarning)
+        password = getpass.getpass(
+            'Password for user {}:'.format(args.login_user)
+        )
+
+    c = ContributionsCrawler(
+        args.login_user, password, target_user=args.target or args.login_user,
+        only_merged=args.only_merged, sort=args.sort, asc=args.asc,
+        async_mode=not args.sync, exclude=args.exclude,
+    )
+
+    await c.run_and_write(filename=args.output, force=args.force)
+
 
 if __name__ == '__main__':
-    main()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
