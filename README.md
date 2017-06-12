@@ -25,7 +25,7 @@ For show unmerged PRs, use `-u` option.
 
 Use `--help` to see full option and usage.
 
-## ContributionsCrawler
+## Contribution
 
 - [jhao104/proxy_pool (874★ 305🍴)](https://github.com/jhao104/proxy_pool) - [typo](https://github.com/jhao104/proxy_pool/pulls/42)
 - [Qihoo360/zeppelin-gateway (9★ 4🍴)](https://github.com/Qihoo360/zeppelin-gateway) - [Fix memory leak and remove redundant condition statemen](https://github.com/Qihoo360/zeppelin-gateway/pulls/1)

@@ -38,7 +38,7 @@ For show unmerged PRs, use `-u` option.
 
 Use `--help` to see full option and usage.
 
-## ContributionsCrawler
+## Contribution
 
 '''
 
