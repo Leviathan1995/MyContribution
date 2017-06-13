@@ -15,10 +15,10 @@ Crawl all merged pull request and show on `README.md`
 Fork this repository and 
 
 ```bash
-python3 contribution.py <YourUserName>
+python3 contribution.py
 ```
 
-Default mode is ASYNC, if error happened, you can try slower `--sync` mode.
+Default mode is `ASYNC`, if error happened, you can try slower `--sync` mode.
 
 Use `--help` to see full option and usage.
 
