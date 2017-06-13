@@ -100,7 +100,6 @@ class ContributionsCrawler(object):
     __GITHUB_API_ROOT = 'https://api.github.com'
     __GITHUB_API_TEST_LOGIN = __GITHUB_API_ROOT + '/user'
     __GITHUB_API_SEARCH = __GITHUB_API_ROOT + '/search/issues'
-    __GITHUB_API_ISSUES = __GITHUB_API_ROOT + '/repos/{repo}/issues'
 
     def __init__(self, username, password, sort='created',
                  asc=False, async_mode=False, async_pool=None, exclude=None):
@@ -243,16 +242,6 @@ class ContributionsCrawler(object):
             repo = self.__build_repo_from_data(pr_data, repo_url)
             _step('Getting new repo [{}] data', repo.name)
             self.__repo_add_user(pr_data, repo)
-            data = self.__get_json_or_error(
-                session.get(
-                    self.__GITHUB_API_ISSUES.format(repo=repo.name),
-                    params={
-                        'state': 'all',
-                        'per_page': 1,
-                    },
-                ),
-            )
-            repo.issue_and_pr = 0 if len(data) == 0 else data[0]['number']
             repos[repo_url] = repo
         else:
             _step('of gotten repo [{}]', repos[repo_url].name)
@@ -352,14 +341,6 @@ class ContributionsCrawler(object):
 
             repo = self.__build_repo_from_data(pr_data, repo_url)
             self.__repo_add_user(pr_data, repo)
-
-            repo_issues_url = self.__GITHUB_API_ISSUES.format(repo=repo.name)
-            async with session.get(
-                    repo_issues_url,
-                    params={'state': 'all', 'per_page': 1}
-            ) as resp2:
-                data = await self.__get_json_or_error_async(resp2)
-                repo.issue_and_pr = 0 if len(data) == 0 else data[0]['number']
 
             pr.repo = repo
             return pr
