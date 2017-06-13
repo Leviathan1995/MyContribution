@@ -8,7 +8,15 @@ Crawl all merged pull request and show on `README.md`
 
  - Python 3.5+
  - request (Only in sync mode)
+
+```bash
+pip3 install request
+```
  - aiohttp (Only in async mode)
+
+```bash
+pip3 install aiohttp
+```
 
 #### How to use
 
@@ -64,6 +72,6 @@ Use `--help` to see full option and usage.
 * [**onexsoft/OneValue**(★42)](https://github.com/onexsoft/OneValue) - [Add the HyperLogLog algorithm as a native feature,but now only support PFADD and PFCOUNT method.](https://github.com/onexsoft/OneValue/pulls/6)
 * [**onexsoft/OneValue**(★42)](https://github.com/onexsoft/OneValue) - [fix warning: ‘brdaddr’ may be used uninitialized in this function](https://github.com/onexsoft/OneValue/pulls/3)
 * [**onexsoft/OneValue**(★42)](https://github.com/onexsoft/OneValue) - [fix "::read() has not been declared" error](https://github.com/onexsoft/OneValue/pulls/1)
-* [**Tencent/libco**(★1614)](https://github.com/Tencent/libco) - [fix warning](https://github.com/Tencent/libco/pulls/1)
+* [**Tencent/libco**(★1615)](https://github.com/Tencent/libco) - [fix warning](https://github.com/Tencent/libco/pulls/1)
 * [**tencent-wechat/libco**(★331)](https://github.com/tencent-wechat/libco) - [fix warning](https://github.com/tencent-wechat/libco/pulls/1)
 * [**tinyclub/linux-doc**(★83)](https://github.com/tinyclub/linux-doc) - [Update PLAN.md](https://github.com/tinyclub/linux-doc/pulls/5)

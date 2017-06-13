@@ -19,7 +19,15 @@ Crawl all merged pull request and show on `README.md`
 
  - Python 3.5+
  - request (Only in sync mode)
+
+```bash
+pip3 install request
+```
  - aiohttp (Only in async mode)
+
+```bash
+pip3 install aiohttp
+```
 
 #### How to use
 
