@@ -16,7 +16,7 @@ Crawl all merged pull request and show on `README.md`
 
 ## Basic
 
-#### Dependencies
+### Dependencies
 
  - Python 3.5+
  - request (Only in sync mode)
@@ -30,7 +30,7 @@ pip3 install request
 pip3 install aiohttp
 ```
 
-#### How to use
+### How to use
 
 Fork this repository and 
 
@@ -42,7 +42,7 @@ Default mode is `ASYNC`, if error happened, you can try slower `--sync` mode.
 
 Use `--help` to see full option and usage.
 
-## Contribution'''
+## Contributions'''
 
 _RE_URL_PROCESS = re.compile(r'^https://api.github.com/repos/([^/]+)/([^/]+)')
 _RE_URL_REPLACE = r'https://github.com/\1/\2'
