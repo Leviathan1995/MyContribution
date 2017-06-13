@@ -33,8 +33,6 @@ python3 contribution.py <YourUserName>
 
 Default mode is ASYNC, if error happened, you can try slower `--sync` mode.
 
-For show unmerged PRs, use `-u` option.
-
 Use `--help` to see full option and usage.
 
 ## Contribution
@@ -45,7 +43,7 @@ _RE_URL_PROCESS = re.compile(r'^https://api.github.com/repos/([^/]+)/([^/]+)')
 _RE_URL_REPLACE = r'https://github.com/\1/\2'
 
 _DEFAULT_TEMPLATE = '- {merged}' \
-                    '[{repo_name} ({star}★ {fork}🍴)]({repo_url}) - ' \
+                    '[{repo_name}({star}★)]({repo_url}) - ' \
                     '[{title}]({url})'
 
 
@@ -512,10 +510,6 @@ async def main():
         '-s', '--sync', action='store_true', help='Use sync mode'
     )
     parser.add_argument(
-        '-u', '--show-unmerged', action='store_true',
-        help='Include PRs which not be merged'
-    )
-    parser.add_argument(
         '-e', '--exclude', type=str,
         help='Exclude PRs which\'s repo full name match the regex'
     )
@@ -533,8 +527,8 @@ async def main():
         )
 
     c = ContributionsCrawler(
-        args.login_user, password, show_unmerged=args.show_unmerged,
-        async_mode=not args.sync, exclude=args.exclude,
+        args.login_user, password, async_mode=not args.sync,
+        exclude=args.exclude,
     )
 
     await c.run_and_write(filename=args.output)
