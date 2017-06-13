@@ -452,9 +452,9 @@ async def main():
 
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', getpass.GetPassWarning)
-        login_user = input("Github Username:")
+        login_user = input('Username for Github:')
         password = getpass.getpass(
-            'Password for user {}:'.format(login_user)
+            'Password for Githhub:'
         )
 
     c = ContributionsCrawler(
