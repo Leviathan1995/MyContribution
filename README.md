@@ -22,8 +22,7 @@ Default mode is ASYNC, if error happened, you can try slower `--sync` mode.
 
 Use `--help` to see full option and usage.
 
-## Contribution(43 merged)
-[**jhao104/proxy_pool**(★876)](https://github.com/jhao104/proxy_pool) - [typo](https://github.com/jhao104/proxy_pool/pulls/42)
+## Contribution[**jhao104/proxy_pool**(★876)](https://github.com/jhao104/proxy_pool) - [typo](https://github.com/jhao104/proxy_pool/pulls/42)
 [**Qihoo360/zeppelin-gateway**(★9)](https://github.com/Qihoo360/zeppelin-gateway) - [Fix memory leak and remove redundant condition statemen](https://github.com/Qihoo360/zeppelin-gateway/pulls/1)
 [**akumuli/Akumuli**(★251)](https://github.com/akumuli/Akumuli) - [Add a option that allows to preallocate file space](https://github.com/akumuli/Akumuli/pulls/185)
 [**Qihoo360/pika**(★979)](https://github.com/Qihoo360/pika) - [fix memory leak](https://github.com/Qihoo360/pika/pulls/98)
