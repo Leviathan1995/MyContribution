@@ -125,7 +125,7 @@ class ContributionsCrawler(object):
 
         query = [
             ('author', str(self.__username)),
-            ('type', 'pr'),
+            ('type', 'pr')
         ]
         query.append(('is', 'merged'))
 
@@ -177,11 +177,11 @@ class ContributionsCrawler(object):
 
     async def run(self):
         if self.__async_mode:
-            print('!!! ASYNC MODE !!!')
+            print('-----ASYNC MODE-----')
             print('If error happened, please add --sync option and try again')
             return await self.__run_async()
         else:
-            print("Run in sync mode")
+            print("-----SYNC MODE-----")
             return self.__run_sync()
 
     def __build_session(self):
@@ -421,7 +421,7 @@ class ContributionsCrawler(object):
             x.format(template, custom_data)
             for x in prs
         ])
-        content = count + content;
+        content = count + content
         _ok()
 
         _step('Writing data to {}', filename)
