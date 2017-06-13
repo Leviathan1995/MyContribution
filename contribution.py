@@ -8,7 +8,7 @@ import json
 import re
 import time
 import warnings
-import os
+from subprocess import call
 
 _BASE_CONTENT = '''# MyContribution
 
@@ -421,9 +421,9 @@ class ContributionsCrawler(object):
 
     def push(self):
         _step("Push to Github")
-        os.system("git add README.md")
-        os.system("git commit -m 'update README.md'")
-        os.system("git push")
+        call(["git", "add", "README.md"])
+        call(["git", "commit", "-m", "'update README.md'"])
+        call(["git", "push"])
 
     async def run_and_write(self, template=None, filename='README.md'):
         self.write(await self.run(), template, filename)
