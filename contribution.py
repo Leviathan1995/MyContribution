@@ -9,8 +9,6 @@ import re
 import time
 import warnings
 
-from datetime import datetime
-
 _BASE_CONTENT = '''# MyContribution
 
 Crawl all merged pull request and show on `README.md`
@@ -28,22 +26,19 @@ Crawl all merged pull request and show on `README.md`
 Fork this repository and 
 
 ```bash
-python3 contribution.py <YourUserName>
+python3 contribution.py
 ```
 
-Default mode is ASYNC, if error happened, you can try slower `--sync` mode.
+Default mode is `ASYNC`, if error happened, you can try slower `--sync` mode.
 
 Use `--help` to see full option and usage.
 
-## Contribution
-
-'''
+## Contribution'''
 
 _RE_URL_PROCESS = re.compile(r'^https://api.github.com/repos/([^/]+)/([^/]+)')
 _RE_URL_REPLACE = r'https://github.com/\1/\2'
 
-_DEFAULT_TEMPLATE = '- {merged}' \
-                    '[{repo_name}({star}★)]({repo_url}) - ' \
+_DEFAULT_TEMPLATE = '* [**{repo_name}**(★{star})]({repo_url}) - ' \
                     '[{title}]({url})'
 
 
@@ -68,58 +63,28 @@ class _User(object):
 class _Repo(object):
     def __init__(
             self, url, name='', author=None,
-            star=0, opening_issue=0, issue_and_pr=0, fork=0
+            star=0
     ):
         self.url = url
         self.name = name
         self.author = author
         self.star = star
-        self.opening_issue = opening_issue
-        self.issue_and_pr = issue_and_pr
-        self.fork = fork
 
 
 class _PullRequest(object):
-    def __init__(self, url, title, repo, is_merged, created_at, merged_at):
+    def __init__(self, url, title, repo):
         self.url = url
         self.title = title
         self.repo = repo
 
-        self.is_merged = is_merged
-
-        self.created_at = self.__strptime(created_at)
-        if self.is_merged:
-            self.merged_at = self.__strptime(merged_at)
-        else:
-            self.merged_at = merged_at
-
-    @staticmethod
-    def __strptime(date_string):
-        # 2017-02-03T08:35:12Z
-        date_template = '%Y-%m-%dT%H:%M:%SZ'
-        return datetime.strptime(date_string, date_template)
-
-    def __str__(self):
-        return self.format('{repo_name} - {title} - {created_at}', '', '')
-
-    def format(self, template, true, false, date_format=None,
+    def format(self, template,
                custom_data=None):
         context = {
             'url': _api_url_to_normal(self.url),
             'title': self.title,
-            'merged': true if self.is_merged else false,
-            'created_at': self.created_at.strftime(
-                date_format) if date_format else str(self.created_at),
-            'merged_at': [
-                false, false, str(self.merged_at),
-                self.is_merged and self.merged_at.strftime(date_format or ''),
-            ][2 * int(self.is_merged) + (1 if date_format is not None else 0)],
             'repo_name': self.repo.name,
             'repo_url': _api_url_to_normal(self.repo.url),
             'star': self.repo.star,
-            'fork': self.repo.fork,
-            'oissue': self.repo.opening_issue,
-            'aissue': self.repo.issue_and_pr,
             'repo_author_name': self.repo.author.name,
             'repo_author_url': _api_url_to_normal(self.repo.author.url),
         }
@@ -137,22 +102,14 @@ class ContributionsCrawler(object):
     __GITHUB_API_SEARCH = __GITHUB_API_ROOT + '/search/issues'
     __GITHUB_API_ISSUES = __GITHUB_API_ROOT + '/repos/{repo}/issues'
 
-    def __init__(self, username, password, target_user=None,
-                 show_unmerged=False, extra_query=None, sort='created',
+    def __init__(self, username, password, sort='created',
                  asc=False, async_mode=False, async_pool=None, exclude=None):
         """
         The crawler to get all your contributions.
 
         :param str username: The GitHub username to
         :param str password: The GitHub password for [username]
-        :param str target_user: Crawl target user, default will be [username]
-        :param bool show_unmerged: Include PRs which not be merged
-        :param list extra_query: Extra query when search
-            example: [
-                ('language', 'python'),
-                ('user', 'username'),
-                ('created', '2017-05-01..2017-05-30'),
-            ]
+
         :param str sort: Pick one from {created, updated, comment}
         :params bool asc: Use asc order, False will be desc
         :param bool async_mode: use async mode (need Python 3.5+)
@@ -160,35 +117,17 @@ class ContributionsCrawler(object):
         :param str exclude: a regex string to exclude prs
             which's repo title match it
         """
-        query_error = ValueError(
-            'A list of two-members tuple excepted for extra_query params'
-        )
-
-        if not (extra_query is None or isinstance(extra_query, list)):
-            raise query_error
-
         if sort not in {'comment', 'created', 'updated'}:
             raise ValueError('Invalid sort param')
 
         self.__username = username
         self.__password = password
-        self.__target_user = target_user or username
 
         query = [
-            ('author', str(self.__target_user)),
+            ('author', str(self.__username)),
             ('type', 'pr'),
         ]
-
-        self.__show_unmerged = show_unmerged
-
-        if not self.__show_unmerged:
-            query.append(('is', 'merged'))
-
-        if extra_query is not None:
-            for item in extra_query:
-                if not isinstance(item, tuple) or len(item) != 2:
-                    raise query_error
-                query.append(item)
+        query.append(('is', 'merged'))
 
         self.__params = {
             'q': self.__build_query_string(query),
@@ -212,8 +151,7 @@ class ContributionsCrawler(object):
     @staticmethod
     def __pr_obj(pr_data, pr_url):
         return _PullRequest(
-            pr_url, pr_data['title'], None, pr_data['merged'],
-            pr_data['created_at'], pr_data['merged_at']
+            pr_url, pr_data['title'], None
         )
 
     @staticmethod
@@ -228,9 +166,7 @@ class ContributionsCrawler(object):
         repo_data = pr_data['base']['repo']
         name = repo_data['full_name']
         star = repo_data['stargazers_count']
-        issue = repo_data['open_issues_count']
-        fork = repo_data['forks_count']
-        repo = _Repo(repo_url, name, None, star, issue, 0, fork)
+        repo = _Repo(repo_url, name, None, star)
         return repo
 
     @staticmethod
@@ -408,7 +344,6 @@ class ContributionsCrawler(object):
             except Exception as e:
                 session.close()
                 raise e
-        _ok()
 
     async def __pr_worker(self, session, pr_url, repo_url):
         async with session.get(pr_url) as resp:
@@ -475,20 +410,18 @@ class ContributionsCrawler(object):
         return prs
 
     def write(self, prs, template=None, filename='README.md',
-              true='', false='', date_format=None,
               custom_data=None):
-
-        if self.__show_unmerged:
-            true = true or '[x] '
-            false = false or '[ ] '
 
         template = template or _DEFAULT_TEMPLATE
 
         _step('Building PR data', filename=filename)
+
+        count = "({} merged)\n\n".format(len(prs))
         content = '\n'.join([
-            x.format(template, true, false, date_format, custom_data)
+            x.format(template, custom_data)
             for x in prs
         ])
+        content = count + content;
         _ok()
 
         _step('Writing data to {}', filename)
@@ -503,9 +436,6 @@ class ContributionsCrawler(object):
 async def main():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument(
-        'login_user', type=str, help='Username to login to github'
-    )
     parser.add_argument(
         '-s', '--sync', action='store_true', help='Use sync mode'
     )
@@ -522,12 +452,13 @@ async def main():
 
     with warnings.catch_warnings():
         warnings.simplefilter('ignore', getpass.GetPassWarning)
+        login_user = input("Github Username:")
         password = getpass.getpass(
-            'Password for user {}:'.format(args.login_user)
+            'Password for user {}:'.format(login_user)
         )
 
     c = ContributionsCrawler(
-        args.login_user, password, async_mode=not args.sync,
+        login_user, password, async_mode=not args.sync,
         exclude=args.exclude,
     )
 
@@ -537,3 +468,4 @@ async def main():
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
+    loop.close()
