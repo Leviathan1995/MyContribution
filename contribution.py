@@ -8,6 +8,7 @@ import json
 import re
 import time
 import warnings
+import os
 
 _BASE_CONTENT = '''# MyContribution
 
@@ -418,8 +419,15 @@ class ContributionsCrawler(object):
             f.writelines(_BASE_CONTENT + content + '\n')
         _ok()
 
+    def push(self):
+        _step("Push to Github")
+        os.system("git add README.md")
+        os.system("git commit -m 'update README.md'")
+        os.system("git push")
+
     async def run_and_write(self, template=None, filename='README.md'):
         self.write(await self.run(), template, filename)
+        self.push()
 
 
 async def main():
