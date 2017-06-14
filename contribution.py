@@ -422,9 +422,9 @@ class ContributionsCrawler(object):
 
     def push(self):
         _step("Push to Github")
-        subprocess.call(["git", "add", "README.md"], shell=False)
-        subprocess.call(["git", "commit", "-m", "'update README.md'"], shell=False)
-        subprocess.call(["git", "push"], shell=False)
+        subprocess.run(["git", "add", "README.md"])
+        subprocess.run(["git", "commit", "-m", "'update README.md'"])
+        subprocess.run(["git", "push"])
 
     async def run_and_write(self, template=None, filename='README.md'):
         self.write(await self.run(), template, filename)
