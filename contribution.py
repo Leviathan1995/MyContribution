@@ -8,7 +8,7 @@ import json
 import re
 import time
 import warnings
-import subprocess
+from subprocess import run
 
 
 _BASE_CONTENT = '''# MyContribution
@@ -422,9 +422,9 @@ class ContributionsCrawler(object):
 
     def push(self):
         _step("Push to Github")
-        subprocess.run(["git", "add", "README.md"])
-        subprocess.run(["git", "commit", "-m", "'update README.md'"])
-        subprocess.run(["git", "push"])
+        run(["git", "add", "README.md"])
+        run(["git", "commit", "-m", "'update README.md'"])
+        run(["git", "push"])
 
     async def run_and_write(self, template=None, filename='README.md'):
         self.write(await self.run(), template, filename)
