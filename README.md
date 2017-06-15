@@ -1,7 +1,5 @@
 # MyContribution
 
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/77922c2ee4984586b28f6168f382638f)](https://www.codacy.com/app/shq0614/MyContribution?utm_source=github.com&utm_medium=referral&utm_content=Leviathan1995/MyContribution&utm_campaign=badger)
-
 Crawl all merged pull request and show on `README.md`
 
 ## Basic
