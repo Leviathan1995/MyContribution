@@ -41,7 +41,7 @@ python3 contribution.py
 
 Default mode is `ASYNC`, if error happened, you can try slower `--sync` mode.
 
-Use `--help` to see full option and usage.
+Use `--help` to see full options and usage.
 
 ## Contributions'''
 
@@ -423,7 +423,7 @@ class ContributionsCrawler(object):
     def push(self):
         _step("Push to Github")
         subprocess.run(["git", "add", "README.md"])
-        subprocess.run(["git", "commit", "-m", "'update README.md'"])
+        subprocess.run(["git", "commit", "-m", "update README.md"])
         subprocess.run(["git", "push"])
 
     async def run_and_write(self, template=None, filename='README.md'):
