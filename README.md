@@ -28,7 +28,7 @@ python3 contribution.py
 
 Default mode is `ASYNC`, if error happened, you can try slower `--sync` mode.
 
-Use `--help` to see full option and usage.
+Use `--help` to see full options and usage.
 
 ## Contributions(45 merged)
 
