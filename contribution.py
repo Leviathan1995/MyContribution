@@ -20,12 +20,12 @@ Crawl all merged pull request and show on `README.md`
 ### Dependencies
 
  - Python 3.5+
- - request (Only in sync mode)
+ - request (only in sync mode)
 
 ```bash
 pip3 install request
 ```
- - aiohttp (Only in async mode)
+ - aiohttp (only in async mode)
 
 ```bash
 pip3 install aiohttp
