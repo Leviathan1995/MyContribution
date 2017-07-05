@@ -7,12 +7,12 @@ Crawl all merged pull request and show on `README.md`
 ### Dependencies
 
  - Python 3.5+
- - request (Only in sync mode)
+ - request (only in sync mode)
 
 ```bash
 pip3 install request
 ```
- - aiohttp (Only in async mode)
+ - aiohttp (only in async mode)
 
 ```bash
 pip3 install aiohttp
@@ -30,14 +30,15 @@ Default mode is `ASYNC`, if error happened, you can try slower `--sync` mode.
 
 Use `--help` to see full options and usage.
 
-## Contributions(45 merged)
+## Contributions(46 merged)
 
 * [**Qihoo360/zeppelin-client**(★3)](https://github.com/Qihoo360/zeppelin-client) - [bugfix:use the value of pointer to check](https://github.com/Qihoo360/zeppelin-client/pulls/8)
-* [**HouzuoGuo/tiedot**(★1850)](https://github.com/HouzuoGuo/tiedot) - [Use fmt.Errorf() instead of errors.New(fmt.Sprintf(...))](https://github.com/HouzuoGuo/tiedot/pulls/133)
-* [**jhao104/proxy_pool**(★970)](https://github.com/jhao104/proxy_pool) - [typo](https://github.com/jhao104/proxy_pool/pulls/42)
+* [**Qihoo360/pika**(★1044)](https://github.com/Qihoo360/pika) - [Support time command](https://github.com/Qihoo360/pika/pulls/124)
+* [**HouzuoGuo/tiedot**(★1851)](https://github.com/HouzuoGuo/tiedot) - [Use fmt.Errorf() instead of errors.New(fmt.Sprintf(...))](https://github.com/HouzuoGuo/tiedot/pulls/133)
+* [**jhao104/proxy_pool**(★980)](https://github.com/jhao104/proxy_pool) - [typo](https://github.com/jhao104/proxy_pool/pulls/42)
 * [**Qihoo360/zeppelin-gateway**(★10)](https://github.com/Qihoo360/zeppelin-gateway) - [Fix memory leak and remove redundant condition statemen](https://github.com/Qihoo360/zeppelin-gateway/pulls/1)
 * [**akumuli/Akumuli**(★267)](https://github.com/akumuli/Akumuli) - [Add a option that allows to preallocate file space](https://github.com/akumuli/Akumuli/pulls/185)
-* [**Qihoo360/pika**(★1036)](https://github.com/Qihoo360/pika) - [fix memory leak](https://github.com/Qihoo360/pika/pulls/98)
+* [**Qihoo360/pika**(★1044)](https://github.com/Qihoo360/pika) - [fix memory leak](https://github.com/Qihoo360/pika/pulls/98)
 * [**akumuli/Akumuli**(★267)](https://github.com/akumuli/Akumuli) - [Set meaningful number of CPU's in TcpServer configuration](https://github.com/akumuli/Akumuli/pulls/184)
 * [**akumuli/Akumuli**(★267)](https://github.com/akumuli/Akumuli) - [fix to clarify the precendence](https://github.com/akumuli/Akumuli/pulls/182)
 * [**Qihoo360/zeppelin**(★45)](https://github.com/Qihoo360/zeppelin) - [return statement is unnecessary](https://github.com/Qihoo360/zeppelin/pulls/6)
@@ -48,20 +49,20 @@ Use `--help` to see full options and usage.
 * [**Qihoo360/slash**(★18)](https://github.com/Qihoo360/slash) - [Support long long int](https://github.com/Qihoo360/slash/pulls/2)
 * [**Qihoo360/zeppelin-client**(★3)](https://github.com/Qihoo360/zeppelin-client) - [fix compile error and the limit of ttl](https://github.com/Qihoo360/zeppelin-client/pulls/2)
 * [**Qihoo360/zeppelin-client**(★3)](https://github.com/Qihoo360/zeppelin-client) - [support exit command for zp_manager](https://github.com/Qihoo360/zeppelin-client/pulls/1)
-* [**Qihoo360/pika**(★1036)](https://github.com/Qihoo360/pika) - [Modify test directory structure](https://github.com/Qihoo360/pika/pulls/90)
+* [**Qihoo360/pika**(★1044)](https://github.com/Qihoo360/pika) - [Modify test directory structure](https://github.com/Qihoo360/pika/pulls/90)
 * [**Qihoo360/zeppelin**(★45)](https://github.com/Qihoo360/zeppelin) - [Makefile bug](https://github.com/Qihoo360/zeppelin/pulls/4)
 * [**Qihoo360/zeppelin**(★45)](https://github.com/Qihoo360/zeppelin) - [Makefile bug](https://github.com/Qihoo360/zeppelin/pulls/3)
-* [**Qihoo360/pika**(★1036)](https://github.com/Qihoo360/pika) - [bugfix GEO](https://github.com/Qihoo360/pika/pulls/77)
-* [**Qihoo360/nemo**(★40)](https://github.com/Qihoo360/nemo) - [To improve HLL precision](https://github.com/Qihoo360/nemo/pulls/8)
-* [**Qihoo360/pika**(★1036)](https://github.com/Qihoo360/pika) - [修改HLL测试文件](https://github.com/Qihoo360/pika/pulls/74)
-* [**Qihoo360/pika**(★1036)](https://github.com/Qihoo360/pika) - [fix bug](https://github.com/Qihoo360/pika/pulls/72)
-* [**Qihoo360/nemo**(★40)](https://github.com/Qihoo360/nemo) - [fix bug](https://github.com/Qihoo360/nemo/pulls/7)
-* [**Qihoo360/pika**(★1036)](https://github.com/Qihoo360/pika) - [Update README.md](https://github.com/Qihoo360/pika/pulls/71)
-* [**Qihoo360/pika**(★1036)](https://github.com/Qihoo360/pika) - [format code](https://github.com/Qihoo360/pika/pulls/66)
-* [**Qihoo360/pika**(★1036)](https://github.com/Qihoo360/pika) - [Support GEO](https://github.com/Qihoo360/pika/pulls/59)
-* [**Qihoo360/pink**(★144)](https://github.com/Qihoo360/pink) - [fix bug](https://github.com/Qihoo360/pink/pulls/3)
-* [**Qihoo360/pika**(★1036)](https://github.com/Qihoo360/pika) - [Support hyperloglog](https://github.com/Qihoo360/pika/pulls/56)
-* [**Qihoo360/nemo**(★40)](https://github.com/Qihoo360/nemo) - [Support hyperloglog](https://github.com/Qihoo360/nemo/pulls/6)
+* [**Qihoo360/pika**(★1044)](https://github.com/Qihoo360/pika) - [bugfix GEO](https://github.com/Qihoo360/pika/pulls/77)
+* [**Qihoo360/nemo**(★41)](https://github.com/Qihoo360/nemo) - [To improve HLL precision](https://github.com/Qihoo360/nemo/pulls/8)
+* [**Qihoo360/pika**(★1044)](https://github.com/Qihoo360/pika) - [修改HLL测试文件](https://github.com/Qihoo360/pika/pulls/74)
+* [**Qihoo360/pika**(★1044)](https://github.com/Qihoo360/pika) - [fix bug](https://github.com/Qihoo360/pika/pulls/72)
+* [**Qihoo360/nemo**(★41)](https://github.com/Qihoo360/nemo) - [fix bug](https://github.com/Qihoo360/nemo/pulls/7)
+* [**Qihoo360/pika**(★1044)](https://github.com/Qihoo360/pika) - [Update README.md](https://github.com/Qihoo360/pika/pulls/71)
+* [**Qihoo360/pika**(★1044)](https://github.com/Qihoo360/pika) - [format code](https://github.com/Qihoo360/pika/pulls/66)
+* [**Qihoo360/pika**(★1044)](https://github.com/Qihoo360/pika) - [Support GEO](https://github.com/Qihoo360/pika/pulls/59)
+* [**Qihoo360/pink**(★145)](https://github.com/Qihoo360/pink) - [fix bug](https://github.com/Qihoo360/pink/pulls/3)
+* [**Qihoo360/pika**(★1044)](https://github.com/Qihoo360/pika) - [Support hyperloglog](https://github.com/Qihoo360/pika/pulls/56)
+* [**Qihoo360/nemo**(★41)](https://github.com/Qihoo360/nemo) - [Support hyperloglog](https://github.com/Qihoo360/nemo/pulls/6)
 * [**onexsoft/OneValue**(★44)](https://github.com/onexsoft/OneValue) - [complete TODO](https://github.com/onexsoft/OneValue/pulls/21)
 * [**onexsoft/OneValue**(★44)](https://github.com/onexsoft/OneValue) - [modify Makefile](https://github.com/onexsoft/OneValue/pulls/20)
 * [**onexsoft/OneValue**(★44)](https://github.com/onexsoft/OneValue) - [remove the size of list](https://github.com/onexsoft/OneValue/pulls/19)
@@ -74,6 +75,6 @@ Use `--help` to see full options and usage.
 * [**onexsoft/OneValue**(★44)](https://github.com/onexsoft/OneValue) - [Add the HyperLogLog algorithm as a native feature,but now only support PFADD and PFCOUNT method.](https://github.com/onexsoft/OneValue/pulls/6)
 * [**onexsoft/OneValue**(★44)](https://github.com/onexsoft/OneValue) - [fix warning: ‘brdaddr’ may be used uninitialized in this function](https://github.com/onexsoft/OneValue/pulls/3)
 * [**onexsoft/OneValue**(★44)](https://github.com/onexsoft/OneValue) - [fix "::read() has not been declared" error](https://github.com/onexsoft/OneValue/pulls/1)
-* [**Tencent/libco**(★1710)](https://github.com/Tencent/libco) - [fix warning](https://github.com/Tencent/libco/pulls/1)
+* [**Tencent/libco**(★1715)](https://github.com/Tencent/libco) - [fix warning](https://github.com/Tencent/libco/pulls/1)
 * [**tencent-wechat/libco**(★335)](https://github.com/tencent-wechat/libco) - [fix warning](https://github.com/tencent-wechat/libco/pulls/1)
 * [**tinyclub/linux-doc**(★85)](https://github.com/tinyclub/linux-doc) - [Update PLAN.md](https://github.com/tinyclub/linux-doc/pulls/5)
