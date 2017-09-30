@@ -3,13 +3,12 @@
 
 import argparse
 import asyncio
-import getpass
 import json
 import re
-import time
-import warnings
+import gzip
 import subprocess
 
+import requests
 
 _BASE_CONTENT = '''# MyContribution
 
@@ -36,7 +35,7 @@ pip3 install aiohttp
 Fork this repository and 
 
 ```bash
-python3 contribution.py
+python3 contribution.py <github_oauth_token>
 ```
 
 Default mode is `ASYNC`, if error happened, you can try slower `--sync` mode.
@@ -71,10 +70,7 @@ class _User(object):
 
 
 class _Repo(object):
-    def __init__(
-            self, url, name='', author=None,
-            star=0
-    ):
+    def __init__(self, url, name='', author=None, star=0):
         self.url = url
         self.name = name
         self.author = author
@@ -87,8 +83,7 @@ class _PullRequest(object):
         self.title = title
         self.repo = repo
 
-    def format(self, template,
-               custom_data=None):
+    def format(self, template, custom_data=None):
         context = {
             'url': _api_url_to_normal(self.url),
             'title': self.title,
@@ -111,13 +106,11 @@ class ContributionsCrawler(object):
     __GITHUB_API_TEST_LOGIN = __GITHUB_API_ROOT + '/user'
     __GITHUB_API_SEARCH = __GITHUB_API_ROOT + '/search/issues'
 
-    def __init__(self, username, password, sort='created',
-                 asc=False, async_mode=False, async_pool=None, exclude=None):
+    def __init__(self, token, sort='created', asc=False, async_mode=False, async_pool=None, exclude=None):
         """
         The crawler to get all your contributions.
 
-        :param str username: The GitHub username to
-        :param str password: The GitHub password for [username]
+        :param str token: The GitHub OAuth Token
 
         :param str sort: Pick one from {created, updated, comment}
         :params bool asc: Use asc order, False will be desc
@@ -129,14 +122,15 @@ class ContributionsCrawler(object):
         if sort not in {'comment', 'created', 'updated'}:
             raise ValueError('Invalid sort param')
 
-        self.__username = username
-        self.__password = password
+        self.__headers = {'Authorization': 'token {}'.format(token)}
+
+        self.__get_username()
 
         query = [
             ('author', str(self.__username)),
-            ('type', 'pr')
+            ('type', 'pr'),
+            ('is', 'merged')
         ]
-        query.append(('is', 'merged'))
 
         self.__params = {
             'q': self.__build_query_string(query),
@@ -151,6 +145,12 @@ class ContributionsCrawler(object):
             self.__exclude = re.compile(exclude)
         else:
             self.__exclude = None
+
+    def __get_username(self):
+        resp = requests.get(self.__GITHUB_API_TEST_LOGIN, headers=self.__headers)
+        user_info = self.__get_json_or_error(resp, prefix_message='Login failed: ')
+
+        self.__username = user_info['name']
 
     def __is_exclude(self, repo_url):
         repo_name = _RE_URL_PROCESS.sub(r'\1/\2', repo_url)
@@ -193,28 +193,6 @@ class ContributionsCrawler(object):
             print("-----SYNC MODE-----")
             return self.__run_sync()
 
-    def __build_session(self):
-        from requests import Session
-        session = Session()
-
-        def new_get(*args, **kwargs):
-            while True:
-                res = session.old_get(*args, **kwargs)
-                error = self.__get_json_or_error(res, raise_error=False)
-                if isinstance(error, RuntimeError) \
-                        and 'API limits' in str(error):
-                    time.sleep(5)
-                    continue
-                return res
-
-        session.auth = (self.__username, self.__password)
-        session.headers = {'User-Agent': self.__username}
-
-        session.old_get = session.get
-        session.get = new_get
-
-        return session
-
     @staticmethod
     def __get_json_or_error(
             resp, cls=RuntimeError,
@@ -229,8 +207,6 @@ class ContributionsCrawler(object):
                 msg = prefix_message + json_data['message'] + after_message
         except json.JSONDecodeError:
             msg = 'GitHub return a non-json response: ' + resp.text
-        except KeyError:
-            msg = 'GitHub error json has no message field: ' + resp.text
 
         if raise_error:
             raise cls(msg)
@@ -243,8 +219,8 @@ class ContributionsCrawler(object):
         self.__get_json_or_error(resp, prefix_message='Login failed: ')
         _ok()
 
-    def __build_pr(self, session, pr_url, repo_url, repos):
-        pr_data = self.__get_json_or_error(session.get(pr_url))
+    def __build_pr(self, pr_url, repo_url, repos):
+        pr_data = self.__get_json_or_error(requests.get(pr_url, headers=self.__headers))
         pr = self.__pr_obj(pr_data, pr_url)
         _step('title is [{}]', pr.title)
         if repo_url not in repos:
@@ -259,20 +235,16 @@ class ContributionsCrawler(object):
         return pr
 
     def __run_sync(self):
-        session = self.__build_session()
-        self.__test_login(session)
-
         prs = []
         repos = {}
         params = self.__params.copy()
         params['page'] = 1
         excluded = 0
 
-        # get all pr data
         while True:
             _step('Getting PR pages, current page {}', params['page'])
 
-            resp = session.get(self.__GITHUB_API_SEARCH, params=params)
+            resp = requests.get(self.__GITHUB_API_SEARCH, params=params, headers=self.__headers)
             data = self.__get_json_or_error(resp)
             total = data['total_count'] - excluded
 
@@ -291,7 +263,7 @@ class ContributionsCrawler(object):
                     print('exclude')
                     continue
 
-                prs.append(self.__build_pr(session, pr_url, repo_url, repos))
+                prs.append(self.__build_pr(pr_url, repo_url, repos))
                 _ok()
 
             if len(prs) == total:
@@ -302,14 +274,9 @@ class ContributionsCrawler(object):
         return prs
 
     def __build_async_session(self):
-        from aiohttp import ClientSession, BasicAuth
+        from aiohttp import ClientSession
 
-        session = ClientSession(
-            auth=BasicAuth(self.__username, self.__password),
-            headers={'User-Agent': self.__username}
-        )
-
-        return session
+        return ClientSession(headers=self.__headers)
 
     @staticmethod
     async def __get_json_or_error_async(
@@ -317,8 +284,14 @@ class ContributionsCrawler(object):
             prefix_message='GitHub API Error: ', after_message='',
             raise_error=True,
     ):
+
         try:
-            json_data = await resp.json()
+            if resp.headers.get('Content-Encoding') is None:
+                content = await resp.content.read()
+                json_data = json.loads(gzip.decompress(content).decode('utf-8'))
+            else:
+                json_data = await resp.json()
+
             if 200 <= resp.status < 300:
                 return json_data
             else:
@@ -327,6 +300,8 @@ class ContributionsCrawler(object):
             msg = 'GitHub return a non-json response: ' + resp.text
         except KeyError:
             msg = 'GitHub error json has no message field: ' + resp.text
+        except UnicodeDecodeError as e:
+            msg = e
 
         if raise_error:
             raise cls(msg)
@@ -435,6 +410,9 @@ async def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
+        'token', type=str, help='OAuth Token'
+    )
+    parser.add_argument(
         '-s', '--sync', action='store_true', help='Use sync mode'
     )
     parser.add_argument(
@@ -448,17 +426,7 @@ async def main():
 
     args = parser.parse_args()
 
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore', getpass.GetPassWarning)
-        login_user = input('Username for Github:')
-        password = getpass.getpass(
-            'Password for Github:'
-        )
-
-    c = ContributionsCrawler(
-        login_user, password, async_mode=not args.sync,
-        exclude=args.exclude,
-    )
+    c = ContributionsCrawler(args.token, async_mode=not args.sync, exclude=args.exclude)
 
     await c.run_and_write(filename=args.output)
 
