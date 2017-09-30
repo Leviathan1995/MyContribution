@@ -23,7 +23,7 @@ pip3 install aiohttp
 Fork this repository and 
 
 ```bash
-python3 contribution.py
+python3 contribution.py <github_oauth_token>
 ```
 
 Default mode is `ASYNC`, if error happened, you can try slower `--sync` mode.

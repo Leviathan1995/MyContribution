@@ -6,6 +6,7 @@ import asyncio
 import json
 import re
 import gzip
+import subprocess
 
 import requests
 
@@ -34,7 +35,7 @@ pip3 install aiohttp
 Fork this repository and 
 
 ```bash
-python3 contribution.py
+python3 contribution.py <github_oauth_token>
 ```
 
 Default mode is `ASYNC`, if error happened, you can try slower `--sync` mode.
@@ -105,6 +106,12 @@ class ContributionsCrawler(object):
     __GITHUB_API_TEST_LOGIN = __GITHUB_API_ROOT + '/user'
     __GITHUB_API_SEARCH = __GITHUB_API_ROOT + '/search/issues'
 
+    def __get_username(self):
+        resp = requests.get(self.__GITHUB_API_TEST_LOGIN, headers=self.__headers)
+        user_info = self.__get_json_or_error(resp, prefix_message='Login failed: ')
+
+        self.__username = user_info['name']
+
     def __init__(self, token, sort='created', asc=False, async_mode=False, async_pool=None, exclude=None):
         """
         The crawler to get all your contributions.
@@ -122,10 +129,11 @@ class ContributionsCrawler(object):
             raise ValueError('Invalid sort param')
 
         self.__headers = {'Authorization': 'token {}'.format(token)}
-        self.__username = 'chyroc'
+
+        self.__get_username()
 
         query = [
-            ('author', str('chyroc')),
+            ('author', str(self.__username)),
             ('type', 'pr'),
             ('is', 'merged')
         ]
@@ -192,7 +200,6 @@ class ContributionsCrawler(object):
             raise_error=True,
     ):
         try:
-            print(resp)
             json_data = resp.json()
             if 200 <= resp.status_code < 300:
                 return json_data
@@ -352,6 +359,7 @@ class ContributionsCrawler(object):
 
     async def __run_async(self):
         session = self.__build_async_session()
+        await self.__test_login_async(session)
 
         prs = []
         params = self.__params.copy()
@@ -415,11 +423,10 @@ class ContributionsCrawler(object):
         _ok()
 
     def push(self):
-        pass
-        # _step("Push to Github")
-        # subprocess.run(["git", "add", "README.md"])
-        # subprocess.run(["git", "commit", "-m", "update README.md"])
-        # subprocess.run(["git", "push"])
+        _step("Push to Github")
+        subprocess.run(["git", "add", "README.md"])
+        subprocess.run(["git", "commit", "-m", "update README.md"])
+        subprocess.run(["git", "push"])
 
     async def run_and_write(self, template=None, filename='README.md'):
         self.write(await self.run(), template, filename)
