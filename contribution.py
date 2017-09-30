@@ -106,12 +106,6 @@ class ContributionsCrawler(object):
     __GITHUB_API_TEST_LOGIN = __GITHUB_API_ROOT + '/user'
     __GITHUB_API_SEARCH = __GITHUB_API_ROOT + '/search/issues'
 
-    def __get_username(self):
-        resp = requests.get(self.__GITHUB_API_TEST_LOGIN, headers=self.__headers)
-        user_info = self.__get_json_or_error(resp, prefix_message='Login failed: ')
-
-        self.__username = user_info['name']
-
     def __init__(self, token, sort='created', asc=False, async_mode=False, async_pool=None, exclude=None):
         """
         The crawler to get all your contributions.
@@ -151,6 +145,12 @@ class ContributionsCrawler(object):
             self.__exclude = re.compile(exclude)
         else:
             self.__exclude = None
+
+    def __get_username(self):
+        resp = requests.get(self.__GITHUB_API_TEST_LOGIN, headers=self.__headers)
+        user_info = self.__get_json_or_error(resp, prefix_message='Login failed: ')
+
+        self.__username = user_info['name']
 
     def __is_exclude(self, repo_url):
         repo_name = _RE_URL_PROCESS.sub(r'\1/\2', repo_url)
@@ -207,8 +207,6 @@ class ContributionsCrawler(object):
                 msg = prefix_message + json_data['message'] + after_message
         except json.JSONDecodeError:
             msg = 'GitHub return a non-json response: ' + resp.text
-        except KeyError:
-            msg = 'GitHub error json has no message field: ' + resp.text
 
         if raise_error:
             raise cls(msg)
