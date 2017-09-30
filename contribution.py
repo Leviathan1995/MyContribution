@@ -310,31 +310,6 @@ class ContributionsCrawler(object):
         else:
             return cls(msg)
 
-    @staticmethod
-    async def __get_json_or_error_async_gzip(
-            resp, cls=RuntimeError,
-            prefix_message='GitHub API Error: ', after_message='',
-            raise_error=True,
-    ):
-        try:
-            t = await resp.text()
-            print(t)
-            json_data = json.loads(t)
-            print(json_data)
-            if 200 <= resp.status < 300:
-                return json_data
-            else:
-                msg = prefix_message + json_data['message'] + after_message
-        except json.JSONDecodeError:
-            msg = 'GitHub return a non-json response: ' + resp.text
-        except KeyError:
-            msg = 'GitHub error json has no message field: ' + resp.text
-
-        if raise_error:
-            raise cls(msg)
-        else:
-            return cls(msg)
-
     async def __test_login_async(self, session):
         _step("Login to GitHub as [{}]", self.__username)
         async with session.get(self.__GITHUB_API_TEST_LOGIN) as resp:
