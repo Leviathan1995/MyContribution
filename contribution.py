@@ -403,6 +403,7 @@ class ContributionsCrawler(object):
         _step('Building PR data', filename=filename)
 
         count = "({} merged)\n\n".format(len(prs))
+        prs = filter(lambda x: not x.repo.name.startswith('{}/'.format(self.__username)), prs)
         content = '\n'.join([
             x.format(template, custom_data)
             for x in prs
@@ -423,7 +424,7 @@ class ContributionsCrawler(object):
 
     async def run_and_write(self, template=None, filename='README.md'):
         self.write(await self.run(), template, filename)
-        # self.push()
+        self.push()
 
 
 async def main():
