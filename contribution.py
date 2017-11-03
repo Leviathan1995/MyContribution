@@ -50,6 +50,8 @@ Use `--help` to see full options and usage.
 
 _RE_URL_PROCESS = re.compile(r'^https://api.github.com/repos/([^/]+)/([^/]+)')
 _RE_URL_REPLACE = r'https://github.com/\1/\2'
+_RE_PULL_URL_PROCESS = re.compile(r'^https://api.github.com/repos/([^/]+)/([^/]+)/([^/]+)/([^/]+)')
+_RE_PULL_URL_REPLACE = r'https://github.com/\1/\2/pull/\4'
 
 _DEFAULT_TEMPLATE = '* [**{repo_name}**(★{star})]({repo_url}) - ' \
                     '[{title}]({url})'
@@ -89,7 +91,7 @@ class _PullRequest(object):
 
     def format(self, template, custom_data=None):
         context = {
-            'url': _api_url_to_normal(self.url),
+            'url': _RE_PULL_URL_PROCESS.sub(_RE_PULL_URL_REPLACE, self.url),
             'title': self.title,
             'repo_name': self.repo.name,
             'repo_url': _api_url_to_normal(self.repo.url),
@@ -402,8 +404,8 @@ class ContributionsCrawler(object):
 
         _step('Building PR data', filename=filename)
 
+        prs = list(filter(lambda x: not x.repo.name.startswith('{}/'.format(self.__username)), prs))
         count = "({} merged)\n\n".format(len(prs))
-        prs = filter(lambda x: not x.repo.name.startswith('{}/'.format(self.__username)), prs)
         content = '\n'.join([
             x.format(template, custom_data)
             for x in prs
