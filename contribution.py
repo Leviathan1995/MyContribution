@@ -9,6 +9,7 @@ import time
 import warnings
 import subprocess
 import requests
+import itertools
 
 _BASE_CONTENT = '''# MyContribution
 
@@ -53,8 +54,9 @@ _RE_URL_REPLACE = r'https://github.com/\1/\2'
 _RE_PULL_URL_PROCESS = re.compile(r'^https://api.github.com/repos/([^/]+)/([^/]+)/([^/]+)/([^/]+)')
 _RE_PULL_URL_REPLACE = r'https://github.com/\1/\2/pull/\4'
 
-_DEFAULT_TEMPLATE = '* [**{repo_name}**(★{star})]({repo_url}) - ' \
-                    '[{title}]({url})'
+_DEFAULT_TEMPLATE = '* [**{repo_name}**(★{star})]({repo_url}) - [{title}]({url})'
+_ONLY_REPO_TEMPLATE = '* [**{repo_name}**(★{star})]({repo_url})'
+_ONLY_PR_TEMPLATE = '  * [{title}]({url})'
 
 
 def _step(desc, *args, **kwargs):
@@ -405,17 +407,22 @@ class ContributionsCrawler(object):
         _step('Building PR data', filename=filename)
 
         prs = list(filter(lambda x: not x.repo.name.startswith('{}/'.format(self.__username)), prs))
-        count = "({} merged)\n\n".format(len(prs))
-        content = '\n'.join([
-            x.format(template, custom_data)
-            for x in prs
-        ])
-        content = count + content
+
+        content_list = [_BASE_CONTENT, "({} merged)\n\n".format(len(prs))]
+        for repo, pr in itertools.groupby(prs, key=lambda x: x.repo.name):
+            pr = list(pr)
+            if len(pr) == 1:
+                content_list.extend([x.format(template, custom_data) for x in pr])
+            else:
+                content_list.append(pr[0].format(_ONLY_REPO_TEMPLATE, custom_data))
+                content_list.extend([x.format(_ONLY_PR_TEMPLATE, custom_data) for x in pr])
+
+        content_list.append('')
         _ok()
 
         _step('Writing data to {}', filename)
         with open(filename, 'w') as f:
-            f.writelines(_BASE_CONTENT + content + '\n')
+            f.writelines('\n'.join(content_list))
         _ok()
 
     def push(self):
