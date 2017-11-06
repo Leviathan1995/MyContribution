@@ -409,7 +409,7 @@ class ContributionsCrawler(object):
         prs = list(filter(lambda x: not x.repo.name.startswith('{}/'.format(self.__username)), prs))
 
         content_list = ["({} merged)\n\n".format(len(prs))]
-        for repo, pr in itertools.groupby(prs, key=lambda x: x.repo.name):
+        for repo, pr in itertools.groupby(sorted(prs, key=lambda x: x.repo.name), key=lambda x: x.repo.name):
             pr = list(pr)
             if len(pr) == 1:
                 content_list.extend([x.format(template, custom_data) for x in pr])
