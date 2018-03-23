@@ -1,6 +1,6 @@
 # MyContribution
 
-Crawl all merged pull request and show on `README.md`
+Fork this repo, It will crawl your all merged pull requests and show on `README.md`.
 
 ## Basic
 
